@@ -36,7 +36,12 @@ jobs:
 
       - name: Install Chromium (and the Linux libraries it needs)
         run: python -m playwright install --with-deps chromium
-
+      - name: Use the secret
+        env:
+          SHOP_PASSWORD: ${{ secrets.SHOP_PASSWORD }}
+        run: |
+          echo "The password is: $SHOP_PASSWORD"
+          echo "Its length is: ${#SHOP_PASSWORD}"
       - name: Run the tests
         # Keep a screenshot and a trace ONLY for tests that fail.
         env:
