@@ -12,6 +12,13 @@ jobs:
     # WHERE does it run? A fresh Ubuntu machine from GitHub.
     runs-on: ubuntu-latest
 
+    # SHARDING: run the same job on 2 machines at once, each with half the tests.
+    strategy:
+      fail-fast: false        # if shard 1 fails, still let shard 2 finish
+      matrix:
+        shard: [1, 2]
+    name: test (shard ${{ matrix.shard }} of 2)
+
     # WHAT does it do? Steps run top to bottom. If one fails, the rest stop
     # (unless they say `if: failure()` or `if: always()`).
     steps:
@@ -32,6 +39,8 @@ jobs:
 
       - name: Run the tests
         # Keep a screenshot and a trace ONLY for tests that fail.
+        env:
+          SHARD: ${{ matrix.shard }}/2
         run: pytest -v --screenshot=only-on-failure --tracing=retain-on-failure --output=test-results
 
       - name: Upload screenshots and traces
@@ -39,6 +48,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results
+          name: playwright-results-shard-${{ matrix.shard }}   # names must be unique per shard
           path: test-results/
           retention-days: 7

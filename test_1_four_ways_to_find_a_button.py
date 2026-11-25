@@ -14,8 +14,7 @@ def test_by_test_id(shop: Page):
     # Reads the data-testid attribute. It exists ONLY for tests, so designers
     # and copywriters have no reason to change it. Most stable.
     shop.get_by_test_id("add-coffee").click()
-    # BROKEN ON PURPOSE for the CI lesson: one click gives "1", not "2".
-    expect(shop.get_by_test_id("cart-count")).to_have_text("2", timeout=2000)
+    expect(shop.get_by_test_id("cart-count")).to_have_text("1")
 
 
 def test_by_role_and_name(shop: Page):
