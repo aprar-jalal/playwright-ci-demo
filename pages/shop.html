@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Demo Shop</title>
+  <style>
+    /* ------------------------------------------------------------------
+       CSS only changes how things LOOK. Playwright's role/text locators
+       ignore almost all of it. The two exceptions that matter:
+         1. display:none / visibility:hidden  -> element leaves the
+            accessibility tree (and is "not visible" to Playwright).
+         2. ::before / ::after content       -> can add visible text,
+            but it is NOT a reliable accessible name.
+       ------------------------------------------------------------------ */
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #222; }
+    header { display: flex; justify-content: space-between; align-items: center;
+             padding: 12px 24px; background: #1e3a8a; color: white; }
+    main { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; padding: 24px; }
+
+    /* A meaningless, auto-generated-looking class name. Designers rename
+       these all the time, which is why .btn-x7f2 is a fragile locator. */
+    .btn-x7f2 { background: #2563eb; color: white; border: 0; border-radius: 6px;
+                padding: 8px 14px; cursor: pointer; }
+    .btn-x7f2:hover { background: #1d4ed8; }
+
+    .product { background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px;
+               display: flex; justify-content: space-between; align-items: center; }
+    .price { color: #555; }
+
+    .cart-badge { background: #f59e0b; color: #111; border-radius: 999px; padding: 2px 10px; }
+
+    /* Icon-only button: on screen it is just a trash-can emoji. */
+    .icon-btn { background: none; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
+
+    /* Visually hidden, but STILL in the accessibility tree. Screen readers
+       (and get_by_role / get_by_text) can still find this text. */
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden;
+               clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* Truly hidden: removed from the accessibility tree. */
+    .hidden { display: none; }
+
+    form { background: white; border-radius: 8px; padding: 16px; }
+    label { display: block; margin-top: 10px; }
+    .error { color: #b91c1c; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Demo Shop</h1>
+  <!-- role="status" + aria-label: the label is what Playwright (and a screen
+       reader) uses as the accessible NAME. The visible text is just "0". -->
+  <span id="cart-count" class="cart-badge" role="status"
+        aria-label="Cart, 0 items" data-testid="cart-count">0</span>
+</header>
+
+<main>
+  <section aria-labelledby="products-heading">
+    <h2 id="products-heading">Products</h2>
+
+    <!-- Each product is an <article>; the heading inside gives it context.
+         Two "Add to cart" buttons exist, so get_by_role("button",
+         name="Add to cart") alone matches 2 elements (strict mode!). -->
+    <article class="product" data-testid="product-coffee">
+      <div>
+        <h3>Coffee Beans</h3>
+        <span class="price"><span class="sr-only">Price: </span>$12.00</span>
+      </div>
+      <button class="btn-x7f2" data-testid="add-coffee">Add to cart</button>
+    </article>
+
+    <article class="product" data-testid="product-mug">
+      <div>
+        <h3>Blue Mug</h3>
+        <span class="price"><span class="sr-only">Price: </span>$8.50</span>
+      </div>
+      <button class="btn-x7f2" data-testid="add-mug">Add to cart</button>
+    </article>
+  </section>
+
+  <aside>
+    <h2>Your cart</h2>
+    <p id="empty-msg">Your cart is empty.</p>
+    <!-- aria-label gives the list an accessible name: role=list name="Cart items" -->
+    <ul id="cart-list" aria-label="Cart items"></ul>
+
+    <form id="checkout-form" class="hidden" novalidate>
+      <h2>Checkout</h2>
+      <!-- <label for> links label text to the input: that text becomes the
+           input's accessible name, so get_by_label("Full name") works. -->
+      <label for="name">Full name</label>
+      <input id="name" name="name" type="text" required>
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required
+             placeholder="you@example.com">
+
+      <p id="form-error" class="error" role="alert"></p>
+      <button type="submit" class="btn-x7f2">Place order</button>
+    </form>
+
+    <p id="thanks" class="hidden" role="status">Thanks! Your order is placed.</p>
+  </aside>
+</main>
+
+<script>
+  // ---------------------------------------------------------------
+  // JS changes the DOM at runtime. Playwright's locators are LAZY:
+  // they re-query the page every time you act or assert, and
+  // expect(...) retries until the DOM catches up. No sleep() needed.
+  // ---------------------------------------------------------------
+  const cart = [];
+  const list = document.getElementById("cart-list");
+  const badge = document.getElementById("cart-count");
+  const form = document.getElementById("checkout-form");
+
+  function render() {
+    list.innerHTML = "";
+    cart.forEach((item, i) => {
+      const li = document.createElement("li");
+      li.textContent = item + " ";
+
+      // Icon-only button. Visible content is an emoji, which is
+      // meaningless as a name, so aria-label supplies the real name.
+      const remove = document.createElement("button");
+      remove.className = "icon-btn";
+      remove.textContent = "🗑";
+      remove.setAttribute("aria-label", "Remove " + item);
+      remove.dataset.testid = "remove-item-btn";
+      remove.onclick = () => { cart.splice(i, 1); render(); };
+
+      li.appendChild(remove);
+      list.appendChild(li);
+    });
+
+    const n = cart.length;
+    badge.textContent = n;
+    badge.setAttribute("aria-label", `Cart, ${n} item${n === 1 ? "" : "s"}`);
+    document.getElementById("empty-msg").classList.toggle("hidden", n > 0);
+    form.classList.toggle("hidden", n === 0);   // display:none when cart empty
+  }
+
+  document.querySelectorAll("[data-testid^='add-']").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const name = btn.closest("article").querySelector("h3").textContent;
+      // Simulate a slow network call: the cart updates after 500 ms.
+      setTimeout(() => { cart.push(name); render(); }, 500);
+    });
+  });
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const err = document.getElementById("form-error");
+    if (!name || !email.includes("@")) {
+      err.textContent = "Please enter your name and a valid email.";
+      return;
+    }
+    err.textContent = "";
+    form.classList.add("hidden");
+    document.getElementById("thanks").classList.remove("hidden");
+  });
+</script>
+</body>
+</html>

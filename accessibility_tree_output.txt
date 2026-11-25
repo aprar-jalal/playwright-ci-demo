@@ -1,0 +1,49 @@
+=== BEFORE: empty cart ===
+- banner:
+  - heading "Demo Shop" [level=1]
+  - status "Cart, 0 items": "0"
+- main:
+  - region "Products":
+    - heading "Products" [level=2]
+    - article:
+      - heading "Coffee Beans" [level=3]
+      - text: "Price: $12.00"
+      - button "Add to cart"
+    - article:
+      - heading "Blue Mug" [level=3]
+      - text: "Price: $8.50"
+      - button "Add to cart"
+  - complementary:
+    - heading "Your cart" [level=2]
+    - paragraph: Your cart is empty.
+    - list "Cart items"
+
+=== AFTER: one item in the cart ===
+- banner:
+  - heading "Demo Shop" [level=1]
+  - status "Cart, 1 item": "1"
+- main:
+  - region "Products":
+    - heading "Products" [level=2]
+    - article:
+      - heading "Coffee Beans" [level=3]
+      - text: "Price: $12.00"
+      - button "Add to cart"
+    - article:
+      - heading "Blue Mug" [level=3]
+      - text: "Price: $8.50"
+      - button "Add to cart"
+  - complementary:
+    - heading "Your cart" [level=2]
+    - list "Cart items":
+      - listitem:
+        - text: Coffee Beans
+        - button "Remove Coffee Beans": 🗑
+    - heading "Checkout" [level=2]
+    - text: Full name
+    - textbox "Full name"
+    - text: Email
+    - textbox "Email":
+      - /placeholder: you@example.com
+    - alert
+    - button "Place order"
